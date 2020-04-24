@@ -37,8 +37,8 @@ const triangle = (i, tick, alt) => {
   ctx.fillStyle = color
   // ctx.translate(tick, 0)
   ctx.moveTo(0, 0)
-  ctx.lineTo(Math.cos(angle*i)*screenRadius, Math.sin(angle*i)*(screenRadius))
-  ctx.lineTo(Math.cos(angle*(i+1))*screenRadius, Math.sin(angle*(i+1))*(screenRadius))
+  ctx.lineTo(Math.floor(Math.cos(angle*i)*screenRadius), Math.floor(Math.sin(angle*i)*(screenRadius)))
+  ctx.lineTo(Math.floor(Math.cos(angle*(i+1))*screenRadius), Math.floor(Math.sin(angle*(i+1))*(screenRadius)))
   ctx.fill()
   ctx.stroke()
   ctx.restore()
@@ -55,13 +55,13 @@ const fadeOutCircle = () => {
 function init() {
   canvas = document.getElementById('canvas')
   ctx = canvas.getContext('2d')
-  ctx.canvas.width  = window.innerWidth;
-  ctx.canvas.height = window.innerHeight;
+  ctx.canvas.width  = window.innerWidth / 2
+  ctx.canvas.height = window.innerHeight / 2;
   // screenRadius = ctx.canvas.width / 2;
   longestEdge = Math.max(ctx.canvas.width, ctx.canvas.height)
-  screenRadius = Math.sqrt(Math.pow(ctx.canvas.width/2, 2)* Math.pow(ctx.canvas.height/2, 2))
+  screenRadius = Math.floor(Math.sqrt(Math.pow(ctx.canvas.width/2, 2) * Math.pow(ctx.canvas.height/2, 2)))
   
-  ctx.translate(ctx.canvas.width * 0.7, ctx.canvas.height * 0.7)
+  ctx.translate(Math.floor(ctx.canvas.width * 0.7), Math.floor(ctx.canvas.height * 0.7))
   
   fadeCircleGradient = ctx.createRadialGradient(0, 0, longestEdge / 4, 0.001, 0.0001, longestEdge / 2)
   fadeCircleGradient.addColorStop(0, 'white')
@@ -83,7 +83,7 @@ function draw(tick) {
   ctx.save()
   ctx.clearRect(-ctx.canvas.width/2, -ctx.canvas.height/2, ctx.canvas.width, ctx.canvas.height)
   
-  spinningBackgroundThing(tick)
+  spinningBackgroundThing(tick) // tick
   
    // */
   
