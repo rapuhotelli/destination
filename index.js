@@ -58,8 +58,8 @@ const triangle = (context, i, tick, alt) => {
 function createOffscreenCanvas() {
   console.log(Math.sqrt(Math.pow(ctx.canvas.width/2, 2) * Math.pow(ctx.canvas.height/2, 2)))
   const canvas = document.createElement('canvas');
-  canvas.width = window.innerWidth   //window.innerWidth / 2
-  canvas.height = window.innerHeight //window.innerWidth / 2
+  canvas.width = window.innerWidth * 2
+  canvas.height = window.innerHeight * 2
   canvas.ctx = canvas.getContext('2d')
   canvas.ctx.translate(canvas.width / 2, canvas.height / 2)
   return canvas
@@ -80,6 +80,8 @@ function init() {
   
   center.x = Math.floor(ctx.canvas.width * 0.5) // Math.floor(ctx.canvas.width * 0.7)
   center.y = Math.floor(ctx.canvas.height * 0.5)// Math.floor(ctx.canvas.height * 0.7)
+  center.zeroOffsetX = ctx.canvas.width * 0.7 - center.x
+  center.zeroOffsetY = ctx.canvas.height * 0.7 - center.y
   ctx.translate(center.x, center.y)
   
   oscLayers[0] = createOffscreenCanvas()
@@ -113,8 +115,8 @@ function copyCachedLayer(layer) {
     0,
     layer.width,
     layer.height,
-    -ctx.canvas.width / 2 - layer.width / 4,
-    -ctx.canvas.height / 2 - layer.height / 4,
+    -ctx.canvas.width - layer.width / 4,
+    -ctx.canvas.height - layer.height / 4,
     layer.width,
     layer.height
   );
@@ -125,14 +127,14 @@ function draw(tick) {
   ctx.clearRect(-center.x, -center.y, ctx.canvas.width, ctx.canvas.height)
   
   ctx.save()
-  // ctx.translate(100,100)
-  // ctx.rotate(rotationAngle * tick / 40)
+  ctx.translate(center.zeroOffsetX, center.zeroOffsetY)
+  ctx.rotate(rotationAngle * tick / 40)
   copyCachedLayer(oscLayers[0])
   ctx.restore()
   
   ctx.save()
-  // ctx.translate(100,100)
-  // ctx.rotate(rotationAngle * tick/4 / 40)
+  ctx.translate(center.zeroOffsetX, center.zeroOffsetY)
+  ctx.rotate(rotationAngle * tick/4 / 40)
   copyCachedLayer(oscLayers[1])
   ctx.restore()
   
