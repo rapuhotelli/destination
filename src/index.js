@@ -1,3 +1,4 @@
+import { music } from './music'
 
 let canvas, ctx;
 
@@ -235,5 +236,14 @@ function draw(tick) {
 
 
 
-document.addEventListener('DOMContentLoaded', init)
+
+document.addEventListener('DOMContentLoaded', function() {
+  const player = music((event, player) => {
+    document.body.addEventListener('click', function (event) {
+      player.setVolume(75)
+      player.playVideo()
+      init()
+    })
+  })
+})
 
