@@ -1,5 +1,8 @@
 import { music } from './music'
 
+let musicPlayer;
+let isFuckingGoing = false;
+
 let canvas, ctx;
 
 const triangleCount = 35
@@ -37,6 +40,10 @@ function easeInOut(t) {
   } else {
     return (t - 1) * (2 * t - 2) * (2 * t - 2) + 1
   }
+}
+
+function startFuckingGoing() {
+  isFuckingGoing = true
 }
 
 const triangle = (context, i, tick, alt) => {
@@ -113,8 +120,8 @@ function init() {
     ctx.canvas.width * 0.6
   );
   
-  for(let t = 0; t <= 1; t += 0.02) {    // convert linear t to "easing" t:
-    fadeCircleGradient.addColorStop(t, "rgba(255, 255, 0, " + easeInOut(t) * 1 + ")");
+  for(let t = 0; t <= 1; t += 0.02) {
+    fadeCircleGradient.addColorStop(t, `rgba(255, 255, 0, ${easeInOut(t) * 1})`);
   }
 
   oscLayers[0] = createOffscreenCanvas()
@@ -184,7 +191,9 @@ function createBounceFace(frame, xOffset, yOffset) {
     
     ctx.save()
     ctx.translate(center.zeroOffsetX + xOffset, center.zeroOffsetY + yOffset)
-    ctx.rotate(rotationAngle * animationState / 10)
+    if (isFuckingGoing) {
+      ctx.rotate(rotationAngle * animationState / 10)
+    }
     ctx.drawImage(
       assets['facesImage'],
       frame * 64,
@@ -204,20 +213,23 @@ function createBounceFace(frame, xOffset, yOffset) {
 const bouncyFace1 = createBounceFace(0, 40, -12)
 const bouncyFace2 = createBounceFace(2, -8, -8)
 
-
 function draw(tick) {
   ctx.save()
   ctx.clearRect(-center.x, -center.y, ctx.canvas.width, ctx.canvas.height)
   
   ctx.save()
   ctx.translate(center.zeroOffsetX, center.zeroOffsetY)
-  ctx.rotate(rotationAngle * tick / 40)
+  if (isFuckingGoing) {
+    ctx.rotate(rotationAngle * tick / 40)
+  }
   copyCachedLayer(oscLayers[0])
   ctx.restore()
   
   ctx.save()
   ctx.translate(center.zeroOffsetX, center.zeroOffsetY)
-  ctx.rotate(rotationAngle * tick/4 / 40)
+  if (isFuckingGoing) {
+    ctx.rotate(rotationAngle * tick/4 / 40)
+  }
   copyCachedLayer(oscLayers[1])
   ctx.restore()
   
@@ -234,16 +246,30 @@ function draw(tick) {
   window.requestAnimationFrame(draw)
 }
 
+/*
+const startButton = document.getElementById('start-button')
+startButton.addEventListener('click', function() {
+  musicPlayer.setVolume(75)
+  musicPlayer.playVideo()
+  init()
+  startButton.remove()
+})
 
-
+ */
 
 document.addEventListener('DOMContentLoaded', function() {
-  const player = music((event, player) => {
-    document.body.addEventListener('click', function (event) {
-      player.setVolume(75)
-      player.playVideo()
-      init()
-    })
+  init()
+  
+  function itsGoTime() {
+    musicPlayer.playVideo()
+    setTimeout(() => musicPlayer.setVolume(75), 1000)
+    startFuckingGoing()
+    document.body.removeEventListener('click', itsGoTime)
+  }
+  
+  music((event, player) => {
+    musicPlayer = player
+    document.body.addEventListener('click', itsGoTime)
   })
 })
 
