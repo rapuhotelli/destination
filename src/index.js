@@ -13,6 +13,7 @@ const altAngleRad = Math.PI * 2 / altTriangleCount
 
 const rotationAngle = Math.PI * 2 / 360
 
+const textSize = 16;
 let screenRadius = 1;
 let fadeCircleGradient;
 let oscLayers = []
@@ -20,6 +21,11 @@ let scale = 1;
 
 const assets = {
 }
+
+const params = new URLSearchParams(window.location.search)
+let destination = params.get('destination') || 'Post-Quarantine Party'
+destination = destination.toLocaleUpperCase()
+const autoStart = params.has('autoStart') || params.has('autostart')
 
 let center = {
   x: 0,
@@ -101,8 +107,6 @@ function init() {
   ctx.canvas.width  = window.innerWidth / 2
   ctx.canvas.height = window.innerHeight / 2
   
-  // scale = Math.ceil(window.innerWidth / 1024)
-
   screenRadius = Math.floor(Math.sqrt(Math.pow(ctx.canvas.width/2, 2) * Math.pow(ctx.canvas.height/2, 2)))
   
   center.x = Math.floor(ctx.canvas.width * 0.5)
@@ -154,7 +158,7 @@ function copyCachedLayer(layer) {
 function carAnimation(frame) {
   ctx.drawImage(
     assets['carImage'],
-    (frame % 2 === 0) ? 0 : 188,
+    (isFuckingGoing && (frame % 2 === 0)) ? 0 : 188,
     0,
     188,
     68,
@@ -213,6 +217,25 @@ function createBounceFace(frame, xOffset, yOffset) {
 const bouncyFace1 = createBounceFace(0, 40, -12)
 const bouncyFace2 = createBounceFace(2, -8, -8)
 
+function roadSign() {
+  ctx.save()
+  ctx.font = `${textSize}px sans-serif`;
+  const { width: textWidth } = ctx.measureText(destination)
+  ctx.fillStyle = 'blue'
+  ctx.strokeStyle = 'white'
+  ctx.lineWidth = 2;
+  ctx.fillRect(-120, -textSize, textWidth + 20 + 4, textSize + 8);
+  ctx.strokeRect(-120 + 2, -textSize + 2, textWidth + 20, textSize + 4);
+  ctx.fillStyle = 'white'
+  ctx.fillText(destination, -100, 2)
+  ctx.moveTo(-115, -textSize/2 + 4)
+  ctx.lineTo(-105, -textSize + 4)
+  ctx.lineTo(-105, 4)
+  ctx.fill()
+  ctx.restore()
+}
+
+
 function draw(tick) {
   ctx.save()
   ctx.clearRect(-center.x, -center.y, ctx.canvas.width, ctx.canvas.height)
@@ -240,6 +263,7 @@ function draw(tick) {
   
   bouncyFace1(tick)
   bouncyFace2(tick)
+  roadSign()
   carAnimation(Math.floor(tick / 300) % 2)
   
   ctx.restore()
@@ -260,9 +284,13 @@ startButton.addEventListener('click', function() {
 document.addEventListener('DOMContentLoaded', function() {
   init()
   
+  if (autoStart) {
+    startFuckingGoing()
+  }
+  
   function itsGoTime() {
     musicPlayer.playVideo()
-    setTimeout(() => musicPlayer.setVolume(75), 1000)
+    setTimeout(function () { musicPlayer.setVolume(75) }, 1000)
     startFuckingGoing()
     document.body.removeEventListener('click', itsGoTime)
   }
