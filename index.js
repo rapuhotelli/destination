@@ -1,7 +1,7 @@
 
 let canvas, ctx;
 
-const triangleCount = 30
+const triangleCount = 35
 const angleRad = Math.PI * 2 / triangleCount
 
 const altTriangleCount = 40;
@@ -12,7 +12,10 @@ const rotationAngle = Math.PI * 2 / 360
 let screenRadius = 1;
 let fadeCircleGradient;
 let oscLayers = []
-let carImage;
+let scale = 1;
+
+const assets = {
+}
 
 let center = {
   x: 0,
@@ -22,10 +25,18 @@ let center = {
 }
 
 const triangleRayColors = [
-  'rgb(240, 120, 20)',//'#FF6B49',
-  'rgb(240, 150, 20)', //'#BF5037', // 'yellow' //'#BF5037'
-  '#E8D20C' // 'rgba(255,250,128,1)'
+  'rgb(240, 120, 20)',
+  'rgb(240, 150, 20)',
+  '#E8D20C'
 ]
+
+function easeInOut(t) {
+  if (t < 0.5) {
+    return 4 * t * t * t
+  } else {
+    return (t - 1) * (2 * t - 2) * (2 * t - 2) + 1
+  }
+}
 
 const triangle = (context, i, tick, alt) => {
   if (alt && i % 2 === 0) return
@@ -51,7 +62,6 @@ const triangle = (context, i, tick, alt) => {
 }
 
 function createOffscreenCanvas() {
-  console.log(Math.sqrt(Math.pow(ctx.canvas.width/2, 2) * Math.pow(ctx.canvas.height/2, 2)))
   const canvas = document.createElement('canvas');
   canvas.width = window.innerWidth * 2
   canvas.height = window.innerHeight * 2
@@ -60,32 +70,51 @@ function createOffscreenCanvas() {
   return canvas
 }
 
+function getAssetLoader(assetName, path) {
+  return new Promise(function(resolve) {
+    assets[assetName] = new Image()
+    assets[assetName].addEventListener('load', function () {
+      resolve()
+    })
+    assets[assetName].src = path
+  })
+}
+
+function loadAssets(onComplete) {
+  Promise.all([
+    getAssetLoader('carImage', 'assets/carsprite2-lg.png'),
+    getAssetLoader('facesImage', 'assets/faces.png')
+  ]).then(onComplete)
+}
+
 function init() {
   canvas = document.getElementById('canvas')
   ctx = canvas.getContext('2d')
   ctx.canvas.width  = window.innerWidth / 2
   ctx.canvas.height = window.innerHeight / 2
+  
+  // scale = Math.ceil(window.innerWidth / 1024)
 
   screenRadius = Math.floor(Math.sqrt(Math.pow(ctx.canvas.width/2, 2) * Math.pow(ctx.canvas.height/2, 2)))
   
   center.x = Math.floor(ctx.canvas.width * 0.5)
   center.y = Math.floor(ctx.canvas.height * 0.5)
-  center.zeroOffsetX = ctx.canvas.width * 0.7 - center.x
-  center.zeroOffsetY = ctx.canvas.height * 0.7 - center.y
+  center.zeroOffsetX = Math.floor(ctx.canvas.width * 0.7 - center.x)
+  center.zeroOffsetY = Math.floor(ctx.canvas.height * 0.7 - center.y)
   ctx.translate(center.x, center.y)
   
   fadeCircleGradient = ctx.createRadialGradient(
     center.zeroOffsetX,
     center.zeroOffsetY,
-    ctx.canvas.width * 0.4,
+    ctx.canvas.width * 0.1,
     center.zeroOffsetX,
     center.zeroOffsetY,
     ctx.canvas.width * 0.6
   );
-
-  fadeCircleGradient.addColorStop(0, 'rgba(255, 255, 0, 0)');
-  fadeCircleGradient.addColorStop(0.8, 'rgba(255, 255, 0.5)');
-  fadeCircleGradient.addColorStop(1, 'rgba(255, 255, 0, 1)');
+  
+  for(let t = 0; t <= 1; t += 0.02) {    // convert linear t to "easing" t:
+    fadeCircleGradient.addColorStop(t, "rgba(255, 255, 0, " + easeInOut(t) * 1 + ")");
+  }
 
   oscLayers[0] = createOffscreenCanvas()
   for (let i = 0; i < triangleCount; i++) {
@@ -97,11 +126,7 @@ function init() {
     triangle(oscLayers[1].ctx, i, 0, true)
   }
 
-  carImage = new Image()
-  carImage.addEventListener('load', function () {
-    window.requestAnimationFrame(draw)
-  })
-  carImage.src = 'assets/carsprite-lg.png'
+  loadAssets(() => window.requestAnimationFrame(draw))
 }
 
 function copyCachedLayer(layer) {
@@ -120,17 +145,64 @@ function copyCachedLayer(layer) {
 
 function carAnimation(frame) {
   ctx.drawImage(
-    carImage,
+    assets['carImage'],
     (frame % 2 === 0) ? 0 : 188,
     0,
     188,
     68,
-    center.zeroOffsetX - 94,
-    center.zeroOffsetY - 34,
-    188,
-    68
+    center.zeroOffsetX - (94 * scale),
+    center.zeroOffsetY - (34 * scale),
+    188 * scale,
+    68 * scale
   )
 }
+
+function createBounceFace(frame, xOffset, yOffset) {
+  let lastTick = 0;
+  let animationState = 0;
+  let cutOffTick = 200;
+  
+  let direction = 1;
+  
+  return function (tick) {
+    const currTick = tick % cutOffTick
+    
+    if (currTick < lastTick) {
+      if (direction === 1) {
+        direction = -1
+      } else {
+        direction = 1
+      }
+    }
+  
+    if (direction === -1) {
+      animationState = cutOffTick - currTick - cutOffTick
+    } else {
+      animationState = currTick - cutOffTick
+    }
+    
+    ctx.save()
+    ctx.translate(center.zeroOffsetX + xOffset, center.zeroOffsetY + yOffset)
+    ctx.rotate(rotationAngle * animationState / 10)
+    ctx.drawImage(
+      assets['facesImage'],
+      frame * 64,
+      0,
+      64,
+      64,
+      -16,
+      -32,
+      32,
+      32
+    )
+    ctx.restore()
+    lastTick = currTick
+  }
+}
+
+const bouncyFace1 = createBounceFace(0, 40, -12)
+const bouncyFace2 = createBounceFace(2, -8, -8)
+
 
 function draw(tick) {
   ctx.save()
@@ -153,6 +225,8 @@ function draw(tick) {
   ctx.fillRect(-center.x, -center.y, ctx.canvas.width, ctx.canvas.height);
   ctx.restore()
   
+  bouncyFace1(tick)
+  bouncyFace2(tick)
   carAnimation(Math.floor(tick / 300) % 2)
   
   ctx.restore()
