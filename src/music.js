@@ -1,5 +1,5 @@
 
-export function music(onReady) {
+export function music(videoId, onReady) {
   let player;
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
@@ -10,7 +10,7 @@ export function music(onReady) {
     player = new window.YT.Player('player', {
       height: '195',
       width: '320',
-      videoId: 'fTFxE32onKs',
+      videoId: videoId,
       playerVars: {
         start: 0,
         controls: 0,

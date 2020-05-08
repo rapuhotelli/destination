@@ -15,17 +15,35 @@ const rotationAngle = Math.PI * 2 / 360
 
 const textSize = 16;
 let screenRadius = 1;
+
 let fadeCircleGradient;
-let oscLayers = []
+let roadSignIronGradient;
+
+// OffscreenCanvas
+let sunRayLayers = []
+let roadSignOsc;
+
 let scale = 1;
 
 const assets = {
 }
 
+const defaultParams = {
+  destination: 'Post-Quarantine Party',
+  noAutoStart: false
+}
+
 const params = new URLSearchParams(window.location.search)
+
 let destination = params.get('destination') || 'Post-Quarantine Party'
 destination = destination.toLocaleUpperCase()
-const autoStart = params.has('autoStart') || params.has('autostart')
+
+const autoStart = !params.has('noAutoStart') || params.get('noAutoStart') !== false
+let musicTrack = params.has('yt') ? params.get('yt') : 'fTFxE32onKs'
+if (musicTrack === 'disabled') {
+  musicTrack = false
+}
+
 
 let center = {
   x: 0,
@@ -75,10 +93,12 @@ const triangle = (context, i, tick, alt) => {
   context.restore()
 }
 
-function createOffscreenCanvas() {
+function createOffscreenCanvas(width, height) {
+  width = window.innerWidth * 2
+  height = window.innerHeight * 2
   const canvas = document.createElement('canvas');
-  canvas.width = window.innerWidth * 2
-  canvas.height = window.innerHeight * 2
+  canvas.width = width
+  canvas.height = height
   canvas.ctx = canvas.getContext('2d')
   canvas.ctx.translate(canvas.width / 2, canvas.height / 2)
   return canvas
@@ -127,16 +147,23 @@ function init() {
   for(let t = 0; t <= 1; t += 0.02) {
     fadeCircleGradient.addColorStop(t, `rgba(255, 255, 0, ${easeInOut(t) * 1})`);
   }
+  
+  // roadSign = createRoadSign() // here for perf reasons (don't recalc gradient every frame)
 
-  oscLayers[0] = createOffscreenCanvas()
+  sunRayLayers[0] = createOffscreenCanvas(window.innerWidth * 2, window.innerHeight * 2)
   for (let i = 0; i < triangleCount; i++) {
-    triangle(oscLayers[0].ctx, i, 0)
+    triangle(sunRayLayers[0].ctx, i, 0)
   }
 
-  oscLayers[1] = createOffscreenCanvas()
+  sunRayLayers[1] = createOffscreenCanvas(window.innerWidth * 2, window.innerHeight * 2)
   for (let i = 0; i < altTriangleCount; i++) {
-    triangle(oscLayers[1].ctx, i, 0, true)
+    triangle(sunRayLayers[1].ctx, i, 0, true)
   }
+  
+  ctx.font = `${textSize}px sans-serif`;
+  const { width: textWidth } = ctx.measureText(destination)
+  roadSignOsc = createOffscreenCanvas(textWidth, 40)
+  createRoadSignGraphic(roadSignOsc.ctx, textWidth)
 
   loadAssets(() => window.requestAnimationFrame(draw))
 }
@@ -214,27 +241,36 @@ function createBounceFace(frame, xOffset, yOffset) {
   }
 }
 
-const bouncyFace1 = createBounceFace(0, 40, -12)
-const bouncyFace2 = createBounceFace(2, -8, -8)
+const bouncyFace1 = createBounceFace(1, 40, -12)
+const bouncyFace2 = createBounceFace(3, -8, -8)
 
-function roadSign() {
-  ctx.save()
-  ctx.font = `${textSize}px sans-serif`;
-  const { width: textWidth } = ctx.measureText(destination)
-  ctx.fillStyle = 'blue'
-  ctx.strokeStyle = 'white'
-  ctx.lineWidth = 2;
-  ctx.fillRect(-120, -textSize, textWidth + 20 + 4, textSize + 8);
-  ctx.strokeRect(-120 + 2, -textSize + 2, textWidth + 20, textSize + 4);
-  ctx.fillStyle = 'white'
-  ctx.fillText(destination, -100, 2)
-  ctx.moveTo(-115, -textSize/2 + 4)
-  ctx.lineTo(-105, -textSize + 4)
-  ctx.lineTo(-105, 4)
-  ctx.fill()
-  ctx.restore()
+// todo render off-canvas
+function createRoadSignGraphic(context, textWidth) {
+  /*
+  roadSignIronGradient = context.createLinearGradient(-120 + textWidth/3, 0, -120 + textWidth/3 + 10, 0)
+  roadSignIronGradient.addColorStop(0, 'gray')
+  roadSignIronGradient.addColorStop(1, 'green')
+  */
+  
+  context.save()
+  context.fillStyle = 'blue'
+  context.strokeStyle = 'white'
+  context.lineWidth = 2;
+  context.fillRect(-120, 20, textWidth + 20 + 4, textSize + 8);
+  context.strokeRect(-120 + 2, 20 + 2, textWidth + 20, textSize + 4);
+  context.fillStyle = 'white'
+  context.font = `${textSize}px sans-serif`;
+  context.fillText(destination, -100, 36 + 2 )
+  context.moveTo(-115, 28 + 4)
+  context.lineTo(-105, 20 + 4)
+  context.lineTo(-105, 36 + 4)
+  context.fill()
+  context.restore()
+  
+  context.save()
+  
+  context.restore()
 }
-
 
 function draw(tick) {
   ctx.save()
@@ -245,7 +281,7 @@ function draw(tick) {
   if (isFuckingGoing) {
     ctx.rotate(rotationAngle * tick / 40)
   }
-  copyCachedLayer(oscLayers[0])
+  copyCachedLayer(sunRayLayers[0])
   ctx.restore()
   
   ctx.save()
@@ -253,7 +289,7 @@ function draw(tick) {
   if (isFuckingGoing) {
     ctx.rotate(rotationAngle * tick/4 / 40)
   }
-  copyCachedLayer(oscLayers[1])
+  copyCachedLayer(sunRayLayers[1])
   ctx.restore()
   
   ctx.save()
@@ -263,23 +299,14 @@ function draw(tick) {
   
   bouncyFace1(tick)
   bouncyFace2(tick)
-  roadSign()
+
+  copyCachedLayer(roadSignOsc)
+
   carAnimation(Math.floor(tick / 300) % 2)
   
   ctx.restore()
   window.requestAnimationFrame(draw)
 }
-
-/*
-const startButton = document.getElementById('start-button')
-startButton.addEventListener('click', function() {
-  musicPlayer.setVolume(75)
-  musicPlayer.playVideo()
-  init()
-  startButton.remove()
-})
-
- */
 
 document.addEventListener('DOMContentLoaded', function() {
   init()
@@ -294,10 +321,13 @@ document.addEventListener('DOMContentLoaded', function() {
     startFuckingGoing()
     document.body.removeEventListener('click', itsGoTime)
   }
-  
-  music((event, player) => {
-    musicPlayer = player
-    document.body.addEventListener('click', itsGoTime)
-  })
+
+  if (musicTrack) {
+    console.log(musicTrack)
+    music(musicTrack, (event, player) => {
+      musicPlayer = player
+      document.body.addEventListener('click', itsGoTime)
+    })
+  }
 })
 
