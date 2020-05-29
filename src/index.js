@@ -46,6 +46,8 @@ let destination = params.get('destination') || 'Post-Quarantine Party'
 destination = destination.toLocaleUpperCase()
 
 const autoStart = !params.has('wait') // || params.get('wait') !== false
+const faceMode = ['happy', 'kek'].includes(params.get('mode')) ? params.get('mode') : 'kek'
+
 let musicTrack = params.has('yt') ? params.get('yt') : false // 'fTFxE32onKs'
 if (musicTrack === 'disabled') {
   musicTrack = false
@@ -254,8 +256,22 @@ function createBounceFace(frame, xOffset, yOffset) {
   }
 }
 
-const bouncyFace1 = createBounceFace(1, 40, -12)
-const bouncyFace2 = createBounceFace(3, -8, -8)
+let bouncyFace1;
+let bouncyFace2;
+
+switch (faceMode) {
+  case 'kek':
+    bouncyFace1 = createBounceFace(0, 40, -12)
+    bouncyFace2 = createBounceFace(2, -8, -8)
+    break;
+  case 'happy':
+    bouncyFace1 = createBounceFace(1, 40, -12)
+    bouncyFace2 = createBounceFace(3, -8, -8)
+    break;
+  default:
+    break;
+}
+
 
 function createRoadSignGraphic(context, textWidth) {
   
