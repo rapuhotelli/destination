@@ -4,6 +4,7 @@
   "description": "",
   "main": "destination.js",
   "scripts": {
+    "setup": "mkdir -p dist/assets && cp assets/* dist/assets",
     "dev": "parcel index.html",
     "build": "parcel build index.html"
   },

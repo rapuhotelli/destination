@@ -17,13 +17,14 @@ const textSize = 16;
 let screenRadius = 1;
 
 let fadeCircleGradient;
-let roadSignIronGradient;
 
 // OffscreenCanvas
 let sunRayLayers = []
 let roadSignOsc;
 
 let scale = 1;
+
+const f = Math.floor
 
 const assets = {
 }
@@ -35,11 +36,17 @@ const defaultParams = {
 
 const params = new URLSearchParams(window.location.search)
 
+/**
+ * Query parameter options
+ * @destination string text to display on road sign
+ * @wait boolean halt animation until music begins
+ * @yt string youtube video id for background music (requires click from user)
+ */
 let destination = params.get('destination') || 'Post-Quarantine Party'
 destination = destination.toLocaleUpperCase()
 
-const autoStart = !params.has('noAutoStart') || params.get('noAutoStart') !== false
-let musicTrack = params.has('yt') ? params.get('yt') : 'fTFxE32onKs'
+const autoStart = !params.has('wait') // || params.get('wait') !== false
+let musicTrack = params.has('yt') ? params.get('yt') : false // 'fTFxE32onKs'
 if (musicTrack === 'disabled') {
   musicTrack = false
 }
@@ -66,6 +73,11 @@ function easeInOut(t) {
   }
 }
 
+// unused, todo entrance animation
+function easeOutCubic(x) {
+  return 1 - pow(1 - x, 3);
+}
+
 function startFuckingGoing() {
   isFuckingGoing = true
 }
@@ -86,21 +98,21 @@ const triangle = (context, i, tick, alt) => {
   context.strokeStyle = color
   context.fillStyle = color
   context.moveTo(0, 0)
-  context.lineTo(Math.floor(Math.cos(angle*i)*screenRadius), Math.floor(Math.sin(angle*i)*(screenRadius)))
-  context.lineTo(Math.floor(Math.cos(angle*(i+1))*screenRadius), Math.floor(Math.sin(angle*(i+1))*(screenRadius)))
+  context.lineTo(f(Math.cos(angle*i)*screenRadius), f(Math.sin(angle*i)*(screenRadius)))
+  context.lineTo(f(Math.cos(angle*(i+1))*screenRadius), f(Math.sin(angle*(i+1))*(screenRadius)))
   context.fill()
   context.stroke()
   context.restore()
 }
 
 function createOffscreenCanvas(width, height) {
-  width = window.innerWidth * 2
-  height = window.innerHeight * 2
+  width = f(window.innerWidth * 2)
+  height = f(window.innerHeight * 2)
   const canvas = document.createElement('canvas');
   canvas.width = width
   canvas.height = height
   canvas.ctx = canvas.getContext('2d')
-  canvas.ctx.translate(canvas.width / 2, canvas.height / 2)
+  canvas.ctx.translate(f(canvas.width / 2), f(canvas.height / 2))
   return canvas
 }
 
@@ -117,7 +129,8 @@ function getAssetLoader(assetName, path) {
 function loadAssets(onComplete) {
   Promise.all([
     getAssetLoader('carImage', 'assets/carsprite2-lg.png'),
-    getAssetLoader('facesImage', 'assets/faces.png')
+    getAssetLoader('facesImage', 'assets/faces.png'),
+    getAssetLoader('shrubberyImage', 'assets/shrubbery.svg')
   ]).then(onComplete)
 }
 
@@ -127,14 +140,14 @@ function init() {
   ctx.canvas.width  = window.innerWidth / 2
   ctx.canvas.height = window.innerHeight / 2
   
-  screenRadius = Math.floor(Math.sqrt(Math.pow(ctx.canvas.width/2, 2) * Math.pow(ctx.canvas.height/2, 2)))
+  screenRadius = f(Math.sqrt(Math.pow(ctx.canvas.width/2, 2) * Math.pow(ctx.canvas.height/2, 2)))
   
-  center.x = Math.floor(ctx.canvas.width * 0.5)
-  center.y = Math.floor(ctx.canvas.height * 0.5)
-  center.zeroOffsetX = Math.floor(ctx.canvas.width * 0.7 - center.x)
-  center.zeroOffsetY = Math.floor(ctx.canvas.height * 0.7 - center.y)
+  center.x = f(ctx.canvas.width * 0.5)
+  center.y = f(ctx.canvas.height * 0.5)
+  center.zeroOffsetX = f(ctx.canvas.width * 0.7 - center.x)
+  center.zeroOffsetY = f(ctx.canvas.height * 0.7 - center.y)
   ctx.translate(center.x, center.y)
-  
+
   fadeCircleGradient = ctx.createRadialGradient(
     center.zeroOffsetX,
     center.zeroOffsetY,
@@ -148,8 +161,6 @@ function init() {
     fadeCircleGradient.addColorStop(t, `rgba(255, 255, 0, ${easeInOut(t) * 1})`);
   }
   
-  // roadSign = createRoadSign() // here for perf reasons (don't recalc gradient every frame)
-
   sunRayLayers[0] = createOffscreenCanvas(window.innerWidth * 2, window.innerHeight * 2)
   for (let i = 0; i < triangleCount; i++) {
     triangle(sunRayLayers[0].ctx, i, 0)
@@ -160,12 +171,14 @@ function init() {
     triangle(sunRayLayers[1].ctx, i, 0, true)
   }
   
-  ctx.font = `${textSize}px sans-serif`;
-  const { width: textWidth } = ctx.measureText(destination)
-  roadSignOsc = createOffscreenCanvas(textWidth, 40)
-  createRoadSignGraphic(roadSignOsc.ctx, textWidth)
-
-  loadAssets(() => window.requestAnimationFrame(draw))
+  loadAssets(() => {
+    ctx.font = `${textSize}px sans-serif`;
+    const textWidth = f(ctx.measureText(destination).width)
+    roadSignOsc = createOffscreenCanvas(textWidth, 40)
+    createRoadSignGraphic(roadSignOsc.ctx, textWidth)
+    
+    window.requestAnimationFrame(draw)
+  })
 }
 
 function copyCachedLayer(layer) {
@@ -175,8 +188,8 @@ function copyCachedLayer(layer) {
     0,
     layer.width,
     layer.height,
-    -ctx.canvas.width - layer.width / 4,
-    -ctx.canvas.height - layer.height / 4,
+    f(-ctx.canvas.width - layer.width / 4),
+    f(-ctx.canvas.height - layer.height / 4),
     layer.width,
     layer.height
   );
@@ -244,32 +257,55 @@ function createBounceFace(frame, xOffset, yOffset) {
 const bouncyFace1 = createBounceFace(1, 40, -12)
 const bouncyFace2 = createBounceFace(3, -8, -8)
 
-// todo render off-canvas
 function createRoadSignGraphic(context, textWidth) {
-  /*
-  roadSignIronGradient = context.createLinearGradient(-120 + textWidth/3, 0, -120 + textWidth/3 + 10, 0)
-  roadSignIronGradient.addColorStop(0, 'gray')
-  roadSignIronGradient.addColorStop(1, 'green')
-  */
+  
+  const signWidth = f(textWidth + 20 + 4) // textWidth + triangle + border offset
+  
+  const rsig1 = context.createLinearGradient(signWidth/2, 0, signWidth/2 + 10, 0)
+  rsig1.addColorStop(0, 'gray')
+  rsig1.addColorStop(1, 'lightgray')
+  
+  /* todo fix positioning of poles
+  const rsig2 = context.createLinearGradient(-signWidth/3, 0, -signWidth/3 + 10, 0)
+  rsig2.addColorStop(0, 'gray')
+  rsig2.addColorStop(1, 'lightgray')
+   */
   
   context.save()
+  context.translate(-120, 0)
+  context.fillStyle = rsig1
+  context.fillRect(f(signWidth / 2), 20, 10, center.zeroOffsetY)
+  /* todo fix positioning of poles
+  context.fillStyle = rsig2
+  context.fillRect(f(-signWidth / 3), 20, 10, center.zeroOffsetY)
+   */
+  context.restore()
+  
+  context.save()
+  context.translate(-120, 0)
   context.fillStyle = 'blue'
   context.strokeStyle = 'white'
   context.lineWidth = 2;
-  context.fillRect(-120, 20, textWidth + 20 + 4, textSize + 8);
-  context.strokeRect(-120 + 2, 20 + 2, textWidth + 20, textSize + 4);
+  context.fillRect(0, 20, signWidth, textSize + 8)
+  context.strokeRect(0 + 2, 20 + 2, textWidth + 20, textSize + 4)
   context.fillStyle = 'white'
   context.font = `${textSize}px sans-serif`;
-  context.fillText(destination, -100, 36 + 2 )
-  context.moveTo(-115, 28 + 4)
-  context.lineTo(-105, 20 + 4)
-  context.lineTo(-105, 36 + 4)
+  context.fillText(destination, 20, 36 + 2 )
+  context.moveTo(5, 28 + 4)
+  context.lineTo(15, 20 + 4)
+  context.lineTo(15, 36 + 4)
   context.fill()
   context.restore()
   
   context.save()
   
+  context.drawImage(
+    assets['shrubberyImage'],
+    0,
+    0
+  )
   context.restore()
+
 }
 
 function draw(tick) {
@@ -297,12 +333,13 @@ function draw(tick) {
   ctx.fillRect(-center.x, -center.y, ctx.canvas.width, ctx.canvas.height);
   ctx.restore()
   
+  copyCachedLayer(roadSignOsc)
+
   bouncyFace1(tick)
   bouncyFace2(tick)
 
-  copyCachedLayer(roadSignOsc)
 
-  carAnimation(Math.floor(tick / 300) % 2)
+  carAnimation(f(tick / 300) % 2)
   
   ctx.restore()
   window.requestAnimationFrame(draw)
